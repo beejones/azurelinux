@@ -388,3 +388,5 @@ MigrationBackup/
 
 # Output from the "download_spec_sources.sh" script
 downloaded_sources/
+
+Stage/
