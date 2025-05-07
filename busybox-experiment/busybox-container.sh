@@ -19,7 +19,7 @@ EOF
 docker build --no-cache -f .pipelines/containerSourceData/busybox/Dockerfile-Busybox \
   --build-arg BASE_IMAGE=mcr.microsoft.com/azurelinux/base/core:3.0 \
   --build-arg AZL_VERSION=3.0 \
-  --build-arg RPMS_TO_INSTALL="busybox" \
+  --build-arg RPMS_TO_INSTALL="busybox bash" \
   -t busydoc:latest \
   .pipelines/containerSourceData/busybox
 
@@ -27,4 +27,4 @@ docker build --no-cache -f .pipelines/containerSourceData/busybox/Dockerfile-Bus
 docker run --rm -it \
   --name busydoc \
   busydoc:latest \
-  ash -c "echo '--- Content of ronnybj.txt from RPM ---' && cat /usr/share/busybox/ronnybj.txt"
+  bash -c "echo '--- Content of ronnybj.txt from RPM usign bash ---' && cat /usr/share/busybox/ronnybj.txt"
