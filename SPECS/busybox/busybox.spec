@@ -50,8 +50,16 @@ better suited to normal use.
 
 %build
 
+# Ensure clean build environment
+make distclean
+
+# Build busybox.static
 cp %{SOURCE1} .config
-# set all new options to defaults
+# Disable TC (and CBQ) support explicitly
+sed -i '/^CONFIG_TC[ =]/d' .config
+echo "# CONFIG_TC is not set" >> .config
+sed -i '/^CONFIG_TC_CBQ[ =]/d' .config
+echo "# CONFIG_TC_CBQ is not set" >> .config
 yes "" | make oldconfig
 mv .config .config1
 grep -v \
@@ -69,17 +77,27 @@ cp busybox_unstripped busybox.static
 cp docs/busybox.1 docs/busybox.static.1
 
 # create busybox optimized for petitboot
-make clean
-# copy new configuration file
+make distclean  # <-- use distclean instead of clean to remove all build artifacts
 cp %{SOURCE2} .config
-# set all new options to defaults
+# Disable TC (and CBQ) support explicitly for petitboot config
+sed -i '/^CONFIG_TC[ =]/d' .config
+echo "# CONFIG_TC is not set" >> .config
+sed -i '/^CONFIG_TC_CBQ[ =]/d' .config
+echo "# CONFIG_TC_CBQ is not set" >> .config
 yes "" | make oldconfig
 cat .config
 make V=1 CC="gcc %{optflags}"
 cp busybox_unstripped busybox.petitboot
 cp docs/busybox.1 docs/busybox.petitboot.1
 
+# Create ronnybj.txt with version information
+echo "Ronny was here - BusyBox version: %{version}-%{release}" > ronnybj.txt
+
+# Download the bash RPM to be co-located with the busybox RPMs
+yumdownloader --destdir %{_rpmdir}/%{_arch} bash
+
 %install
+rm -rf %{buildroot}
 mkdir -p %{buildroot}/sbin
 install -m 755 busybox.static %{buildroot}/sbin/busybox
 install -m 755 busybox.petitboot %{buildroot}/sbin/busybox.petitboot
@@ -87,15 +105,20 @@ mkdir -p %{buildroot}/%{_mandir}/man1
 install -m 644 docs/busybox.static.1 %{buildroot}/%{_mandir}/man1/busybox.1
 install -m 644 docs/busybox.petitboot.1 %{buildroot}/%{_mandir}/man1/busybox.petitboot.1
 
+# Install ronnybj.txt
+mkdir -p %{buildroot}%{_datadir}/busybox
+install -m 644 ronnybj.txt %{buildroot}%{_datadir}/busybox/ronnybj.txt
+
 %check
 cd testsuite
-SKIP_KNOWN_BUGS=1 ./runtest
+SKIP_KNOWN_BUGS=1 ./runtest -v
 
 %files
 %license LICENSE
 %doc README
 /sbin/busybox
 %{_mandir}/man1/busybox.1.gz
+%{_datadir}/busybox/ronnybj.txt
 
 %files petitboot
 %license LICENSE
@@ -225,7 +248,7 @@ SKIP_KNOWN_BUGS=1 ./runtest
 * Tue Apr 14 2015 Michael Schwendt <mschwendt@fedoraproject.org> - 1:1.22.1-3
 - Provides: bundled(md5-drepper2)  (rhbz #1024549)
 
-* Thu Mar 05 2015 Dan Horák <dan[at]danny.cz> - 1:1.22.1-2
+* Thu Mar 05 2015 Dan Horák <dan[at]danny.cz> - 1.22.1-2
 - drop unneeded patch (#1182677)
 
 * Tue Dec 16 2014 Denys Vlasenko <dvlasenk@redhat.com> - 1:1.22.1-1
