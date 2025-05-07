@@ -23,7 +23,11 @@ docker build --no-cache -f .pipelines/containerSourceData/busybox/Dockerfile-Bus
   -t busydoc:latest \
   .pipelines/containerSourceData/busybox
 
-# 4. Run the container
+# 4. Extract the file system
+CONTAINER_ID=$(docker create busydoc:latest)
+docker export "$CONTAINER_ID" > busydoc.tar
+
+# 5. Run the container
 docker run --rm -it \
   --name busydoc \
   busydoc:latest \
