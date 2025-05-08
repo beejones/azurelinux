@@ -42,8 +42,15 @@ bash "$SCRIPT" \
   -w "$TOOLCHAIN_TARBALL"
 
 # Extract the filesystem of the new container image as a tarball
+# ...existing code...
+
+# Extract the filesystem of the new container image as a tarball
 IMAGE_NAME="azurelinuxlocal.azurecr.io/base/busybox:latest"
 CONTAINER_ID=$(docker create "$IMAGE_NAME")
 docker export "$CONTAINER_ID" -o "$ROOT/busybox-base.tar"
-docker rm "$CONTAINER_ID"
+#docker rm "$CONTAINER_ID"
 echo "Container filesystem exported to $ROOT/busybox-base.tar"
+
+# Run the container interactively (with a shell)
+echo "Starting the container for interactive use..."
+docker run --rm -it "$IMAGE_NAME" /bin/sh
