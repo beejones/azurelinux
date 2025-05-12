@@ -1,0 +1,52 @@
+# Copyright (c) Microsoft Corporation.
+# Licensed under the MIT License.
+
+ARG BASE_IMAGE
+
+FROM $BASE_IMAGE AS base
+
+ARG AZL_VERSION=3.0
+
+ARG RPMS_TO_INSTALL
+ARG RPMS_PATH="/dockerStage/RPMS"
+ARG LOCAL_REPO_FILE="/dockerStage/azurelinuxlocal.repo"
+ARG LOCAL_REPO_PATH="/localrepo"
+
+# Setup local repo and verify contents
+RUN --mount=type=bind,source=./Stage/,target=/dockerStage/ \
+    mkdir -p ${LOCAL_REPO_PATH}; \
+    cp -r ${RPMS_PATH} ${LOCAL_REPO_PATH}/; \               
+    cp    ${LOCAL_REPO_FILE} /etc/yum.repos.d/local.repo; \
+    tdnf install -y --releasever=$AZL_VERSION createrepo; \
+    createrepo --compatibility --database ${LOCAL_REPO_PATH}/RPMS --workers 10; \
+    tdnf makecache; \
+    tdnf autoremove -y createrepo; \
+    echo "Local repo contents:" && ls -lR /localrepo && cat /etc/yum.repos.d/local.repo
+
+# Install packages into a staging location
+RUN mkdir /staging \
+ && tdnf install -y --releasever=$AZL_VERSION --installroot /staging \
+        ${RPMS_TO_INSTALL} \
+ && tdnf clean all \
+ && pushd /staging \
+ && rm -rf boot media mnt opt run usr/lib/sysimage var/cache \
+ && ln -vL /staging/usr/sbin/busybox /staging/bin/ \
+ && chroot /staging /bin/busybox --install -s /bin
+
+# Smoke Tests
+RUN chroot /staging /usr/bin/env sh -xec 'true'
+
+# Ensure correct timezone (UTC)
+RUN [ "$(chroot /staging date +%Z)" = 'UTC' ]
+
+# Test and make sure DNS works too
+RUN cp -L /etc/resolv.conf /staging/etc/; \
+    chroot /staging /bin/sh -xec 'nslookup microsoft.com'; \
+    rm /staging/etc/resolv.conf
+
+FROM scratch
+
+# Copy dependencies into the scratch image.
+COPY --from=base /staging/ .
+COPY --from=base EULA-Container.txt /
+CMD [ "sh" ]

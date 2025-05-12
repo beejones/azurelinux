@@ -87,6 +87,10 @@ mkdir -p %{buildroot}/%{_mandir}/man1
 install -m 644 docs/busybox.static.1 %{buildroot}/%{_mandir}/man1/busybox.1
 install -m 644 docs/busybox.petitboot.1 %{buildroot}/%{_mandir}/man1/busybox.petitboot.1
 
+# Add this to create ronnybj.txt in a valid directory
+mkdir -p %{buildroot}/busybox
+echo "ronnybj was here version %{version}" > %{buildroot}/busybox/ronnybj.txt
+
 %check
 cd testsuite
 SKIP_KNOWN_BUGS=1 ./runtest
@@ -96,6 +100,7 @@ SKIP_KNOWN_BUGS=1 ./runtest
 %doc README
 /sbin/busybox
 %{_mandir}/man1/busybox.1.gz
+/busybox/ronnybj.txt
 
 %files petitboot
 %license LICENSE

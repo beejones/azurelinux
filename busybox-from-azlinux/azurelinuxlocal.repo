@@ -1,0 +1,6 @@
+[azurelinux-local]
+name=Azure Linux Local Repo
+baseurl=file:///localrepo/RPMS
+enabled=1
+gpgcheck=0
+priority=1
