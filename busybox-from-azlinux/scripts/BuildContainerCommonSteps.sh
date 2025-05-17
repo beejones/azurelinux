@@ -1,1 +1,1 @@
-/home/ronny/busybox/work.05-06/azurelinux/.pipelines/containerSourceData/scripts/BuildContainerCommonSteps.sh
+/home/ronny/azurelinux/.pipelines/containerSourceData/scripts/BuildContainerCommonSteps.sh

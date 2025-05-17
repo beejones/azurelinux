@@ -27,15 +27,28 @@ RUN --mount=type=bind,source=./Stage/,target=/dockerStage/ \
 # Install packages into a staging location.
 # Staging directory is copied into the final scratch image.
 RUN mkdir /staging \
-    && tdnf install -y --releasever=$AZL_VERSION --installroot /staging \
-    ${RPMS_TO_INSTALL} \
-    && tdnf clean all \
-    && pushd /staging \
-    && rm -rf boot media mnt opt run \
-    && rm -rf usr/lib/sysimage \
-    && rm -rf var/cache; \
-	ln -vL /staging/usr/sbin/busybox /staging/bin/; \
-	chroot /staging /bin/busybox --install -s /bin
+ && echo "DEBUG: Installing packages: ${RPMS_TO_INSTALL}" \
+ && tdnf install -y --releasever=$AZL_VERSION --installroot /staging \
+        ${RPMS_TO_INSTALL} \
+ && tdnf clean all \
+ && echo "DEBUG: ------ Contents of /staging after tdnf install ------" \
+ && ls -laR /staging \
+ && echo "DEBUG: ------ Specifically checking /staging/usr/sbin/busybox ------" \
+ && (ls -la /staging/usr/sbin/busybox && echo "DEBUG: /staging/usr/sbin/busybox FOUND") || echo "DEBUG: /staging/usr/sbin/busybox NOT FOUND" \
+ && echo "DEBUG: ------ Specifically checking /staging/bin directory ------" \
+ && (ls -la /staging/bin && echo "DEBUG: /staging/bin directory exists") || echo "DEBUG: /staging/bin directory NOT FOUND" \
+ && pushd /staging \
+ && rm -rf boot media mnt opt run usr/lib/sysimage var/cache \
+ && echo "DEBUG: ------ Attempting to create symlink: ln -vL /staging/usr/sbin/busybox /staging/bin/busybox ------" \
+ && ln -vL /staging/usr/sbin/busybox /staging/bin/busybox \
+ && echo "DEBUG: ------ Contents of /staging/bin/ after symlink ------" \
+ && ls -la /staging/bin/ \
+ && echo "DEBUG: ------ Checking created symlink: /staging/bin/busybox ------" \
+ && (ls -la /staging/bin/busybox && echo "DEBUG: /staging/bin/busybox symlink FOUND") || echo "DEBUG: /staging/bin/busybox symlink NOT FOUND" \
+ && echo "DEBUG: ------ Attempting chroot: chroot /staging /bin/busybox --install -s /bin ------" \
+ && chroot /staging /bin/busybox --install -s /bin \
+ && echo "DEBUG: ------ chroot command apparently succeeded. ------" \
+ && popd
 
 # Smoke Tests
 # Test and make sure it works

@@ -4,7 +4,7 @@ set -uxo pipefail
 #--------------------------------------------------------------------
 # Paths
 #--------------------------------------------------------------------
-ROOT=~/busybox/work.05-06/azurelinux
+ROOT=~/azurelinux
 BASE="$ROOT/busybox-from-azlinux"
 PKGBLD_RPMS="$ROOT/out/RPMS/x86_64"
 PIPELINES="$ROOT/.pipelines"
@@ -76,9 +76,9 @@ fi
 COMPONENT_VERSION=$(ls "$PKGBLD_RPMS"/busybox-*.rpm | head -n1 | sed -E 's/.*busybox-([0-9]+\.[0-9]+\.[0-9]+-[0-9]+)\..*/\1/')
 echo "Extracted component version: $COMPONENT_VERSION"
 
-mkdir -p /home/ronny/busybox/work.05-06/azurelinux/busybox-from-azlinux/scripts
-ln -sf /home/ronny/busybox/work.05-06/azurelinux/.pipelines/containerSourceData/scripts/BuildContainerCommonSteps.sh \
-    /home/ronny/busybox/work.05-06/azurelinux/busybox-from-azlinux/scripts/BuildContainerCommonSteps.sh
+mkdir -p "$BASE/scripts"
+ln -sf "$PIPELINES/containerSourceData/scripts/BuildContainerCommonSteps.sh" \
+    "$BASE/scripts/BuildContainerCommonSteps.sh"
 
 cp "$PIPELINES/containerSourceData/Dockerfile-Initial" \
    "$BASE/Dockerfile-Initial"

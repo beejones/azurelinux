@@ -1,0 +1,120 @@
+-rw-r--r-- 1 ronny ronny 1446269 May 12 11:05 /home/ronny/azurelinux/out/RPMS/x86_64/busybox-1.36.1-10.azl3.x86_64.rpm
+-rw-r--r-- 1 ronny ronny 4841802 May 12 11:05 /home/ronny/azurelinux/out/RPMS/x86_64/busybox-debuginfo-1.36.1-10.azl3.x86_64.rpm
+-rw-r--r-- 1 ronny ronny  276680 May 12 11:05 /home/ronny/azurelinux/out/RPMS/x86_64/busybox-petitboot-1.36.1-10.azl3.x86_64.rpm
+Checking if /busybox/ronnybj.txt is part of the RPM...
+/busybox/ronnybj.txt is present in the RPM.
+Recreating RPMs tarball at /home/ronny/azurelinux/out/RPMS/x86_64/rpms.tar.gz
+RPM dir: /home/ronny/azurelinux/out/RPMS/x86_64
+Contents of /home/ronny/azurelinux/busybox-from-azlinux/azurelinuxlocal.repo:
+[azurelinux-local]
+name=Azure Linux Local Repo
+baseurl=file:///localrepo/RPMS
+enabled=1
+gpgcheck=0
+priority=1Extracted component version: 1.36.1-10
++++ Create temp folder
+BASE_IMAGE_NAME_FULL          -> mcr.microsoft.com/azurelinux/base/core:3.0
+ACR                           -> azurelinuxlocal
+REPOSITORY                    -> base/busybox
+IMAGE                         -> busybox
+COMPONENT_FILE                -> busybox.name
+PACKAGE_FILE                  -> busybox.pkg
+DOCKERFILE                    -> Dockerfile-Busybox
+DOCKER_BUILD_ARGS             -> 
+DOCKERFILE_TEXT_REPLACEMENT   -> 
+OUTPUT_DIR                    -> OUTPUT
+RPMS_TARBALL                  -> /home/ronny/azurelinux/out/RPMS/x86_64/rpms.tar.gz
+CONTAINER_SRC_DIR             -> /home/ronny/azurelinux/busybox-from-azlinux
+IS_HCI_IMAGE                  -> false
+USE_RPM_QA_CMD                -> false
+VERSION_EXTRACT_CMD           -> echo 1.36.1-10
+REPO_PREFIX                   -> 
+PUBLISHING_LEVEL              -> development
+PUBLISH_TO_ACR                -> false
+CREATE_SBOM                   -> 
+SBOM_TOOL_PATH                -> 
+SBOM_SCRIPT                   -> 
+DISTROLESS                    -> true
+TOOLCHAIN_RPMS_TARBALL -> /home/ronny/azurelinux/out/RPMS/x86_64/toolchain_rpms.tar.gz
++++ Initialization
+Container Image Name          -> azurelinuxlocal.azurecr.io/base/busybox
+Base ACR Container Name       -> mcr.microsoft.com/azurelinux/base/core
+Base ACR Container Tag        -> 3.0
+Azure Linux Version           -> 3
+Distro Identifier             -> azl
+End of Life                   -> 2026-05-12T11:28:18Z
++++ Get packages to install
+Packages to install           -> azurelinux-release busybox glibc
++++ Get Component name
+Component name                -> busybox
++++ Prepare dockerfile
+ Output content of final dockerfile
+------------------------------------
+# Copyright (c) Microsoft Corporation.
+# Licensed under the MIT License.
+
+ARG BASE_IMAGE
+
+FROM $BASE_IMAGE AS base
+
+ARG AZL_VERSION=3.0
+
+ARG RPMS_TO_INSTALL
+ARG RPMS_PATH="/dockerStage/RPMS"
+ARG LOCAL_REPO_FILE="/dockerStage/azurelinuxlocal.repo"
+ARG LOCAL_REPO_PATH="/localrepo"
+
+# Setup local repo and verify contents
+RUN --mount=type=bind,source=./Stage/,target=/dockerStage/ \
+    mkdir -p ${LOCAL_REPO_PATH}; \
+    cp -r ${RPMS_PATH} ${LOCAL_REPO_PATH}/; \               
+    cp    ${LOCAL_REPO_FILE} /etc/yum.repos.d/local.repo; \
+    tdnf install -y --releasever=$AZL_VERSION createrepo; \
+    createrepo --compatibility --database ${LOCAL_REPO_PATH}/RPMS --workers 10; \
+    tdnf makecache; \
+    tdnf autoremove -y createrepo; \
+    echo "Local repo contents:" && ls -lR /localrepo && cat /etc/yum.repos.d/local.repo
+
+# Install packages into a staging location
+RUN mkdir /staging \
+ && tdnf install -y --releasever=$AZL_VERSION --installroot /staging \
+        ${RPMS_TO_INSTALL} \
+ && tdnf clean all \
+ && pushd /staging \
+ && rm -rf boot media mnt opt run usr/lib/sysimage var/cache \
+ && ln -vL /staging/usr/sbin/busybox /staging/bin/ \
+ && chroot /staging /bin/busybox --install -s /bin
+
+# Smoke Tests
+RUN chroot /staging /usr/bin/env sh -xec 'true'
+
+# Ensure correct timezone (UTC)
+RUN [ "$(chroot /staging date +%Z)" = 'UTC' ]
+
+# Test and make sure DNS works too
+RUN cp -L /etc/resolv.conf /staging/etc/; \
+    chroot /staging /bin/sh -xec 'nslookup microsoft.com'; \
+    rm /staging/etc/resolv.conf
+
+FROM scratch
+
+# Copy dependencies into the scratch image.
+COPY --from=base /staging/ .
+COPY --from=base EULA-Container.txt /
+CMD [ "sh" ]
++++ Prepare docker directory
+mkdir: created directory '/tmp/tmp.dqoqZWulzu/Stage'
+RPMS/
+RPMS/busybox-1.36.1-10.azl3.x86_64.rpm
+RPMS/busybox-petitboot-1.36.1-10.azl3.x86_64.rpm
+RPMS/busybox-debuginfo-1.36.1-10.azl3.x86_64.rpm
+'/home/ronny/azurelinux/busybox-from-azlinux/azurelinuxlocal.repo' -> '/tmp/tmp.dqoqZWulzu/Stage/azurelinuxlocal.repo'
++++ Build container
+ docker build command
+----------------------
+docker buildx build  --build-arg BASE_IMAGE=mcr.microsoft.com/azurelinux/base/core:3.0 --build-arg RPMS_TO_INSTALL=azurelinux-release busybox glibc -t azurelinuxlocal.azurecr.io/base/busybox --no-cache --progress=plain -f /tmp/tmp.dqoqZWulzu/Dockerfile .
+
++++ Remove temp folder: /tmp/tmp.dqoqZWulzu
+BuildGoldenContainer.sh exited with code 1
+Container filesystem exported to /home/ronny/azurelinux/busybox-base.tar
+Starting the container for interactive use...
